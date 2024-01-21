@@ -116,7 +116,8 @@
           paper_bgcolor:"#263043", 
           plot_bgcolor:"#263043", 
           font:{color:"#ffffff"}, 
-          xaxis: {type: 'date',range:{min: new Date(2015, 5, 1).getTime(),max: new Date(2015, 5, 31).getTime()}}
+          xaxis: {type: 'date',range:{min: new Date(2015, 5, 1).getTime(),max: new Date(2015, 5, 31).getTime()}, showticklabels:false},
+          yaxis: {tickformat: '$'}
         }
         Plotly.newPlot(graphDiv,[],layout);
                 
@@ -273,7 +274,7 @@
                     }
           
                     }
-                ,10)
+                ,100)
           setInterval(() => {
           quarterSecond = 50000000
           
