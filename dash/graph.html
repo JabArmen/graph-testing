@@ -45,8 +45,8 @@ let symbols = new Map()
 fetch('./Exchange_1.json')
   .then(response => response.json())
   .then(data => {
-    Plotly.newPlot('myDiv',[{
-                y:[0],
+    plot = Plotly.newPlot('myDiv',[{
+                y:[61.6],
                 type:'line'
             }]);
             
@@ -59,7 +59,7 @@ fetch('./Exchange_1.json')
     // console.log(timestamps)
     // Intervals 
     setInterval(() => {
-      quarterSecond = 25000000
+      quarterSecond = 50000000
       
       // console.log(i)
       if (timestamps[ExchangeIndex] >= i && timestamps[ExchangeIndex] < i + quarterSecond) {
@@ -77,13 +77,14 @@ fetch('./Exchange_1.json')
         }
       }
       i+=quarterSecond
+      console.log(symbols.get("PRQ83"))
       
-      symbols.forEach((value, key) => {
-        console.log(key + ": " +value[1])
+      // symbols.forEach((value, key) => {
+      //   console.log(key + ": " +value[1])
         
-      })
+      // })
       if(symbols.has(data[ExchangeIndex].Symbol) && isFinite(symbols.get(data[ExchangeIndex].Symbol)[1])){ 
-      Plotly.extendTraces('myDiv',{ y:[[symbols.get(data[ExchangeIndex].Symbol)[1]]]}, [0]);
+      Plotly.extendTraces('myDiv',{ y:[[symbols.get("PRQ83")[1]]]}, [0]);
       } 
         cnt = cnt + 1;
                 if (cnt == symbols.length - 1 ){
@@ -91,7 +92,7 @@ fetch('./Exchange_1.json')
                 }
       
                 }
-            ,100);
+            ,500);
     // console.log(data);   
   })
   .catch(error => console.error('Error fetching JSON:', error)); 
