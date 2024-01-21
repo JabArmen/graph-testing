@@ -62,6 +62,7 @@ fetch('./Exchange_1.json')
         if (!symbolIndexes.has(ticker)){
           symbolIndexes.set(ticker, index)
           Plotly.addTraces(graphDiv, [{
+            x:[11058944],
             y:[symbols.get(ticker)[1]],
             type:'line',
             name: ticker
@@ -72,7 +73,11 @@ fetch('./Exchange_1.json')
       
       currSymbol = data[ExchangeIndex].Symbol
       if(symbols.has(currSymbol) && isFinite(symbols.get(currSymbol)[1])){ 
-      Plotly.extendTraces(graphDiv,{ y:[[symbols.get(currSymbol)[1]]]}, [symbolIndexes.get(currSymbol)]);
+      Plotly.extendTraces(graphDiv,
+      {
+        x:[[timestamps[ExchangeIndex]]],
+        y:[[symbols.get(currSymbol)[1]]],
+      }, [symbolIndexes.get(currSymbol)]);
       } 
         cnt = cnt + 1;
                 if (cnt == symbols.length - 1 ){

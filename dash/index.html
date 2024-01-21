@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Admin Dashboard</title>
@@ -90,7 +91,7 @@
             <h2 class="chart-title">Purchase and Sales Orders</h2>
             <div id="area-chart"></div>
           </div>
-
+          <div id="myDiv"></div>
         </div>
       </main>
       <!-- End Main -->
@@ -102,6 +103,137 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.35.5/apexcharts.min.js"></script>
     <!-- Custom JS -->
     <script src="js/scripts.js"></script>
-    <script src="js/test.js"></script>
+    <script>
+      let values
+    
+      let timestamps
+      let symbols = new Map()
+      let symbolIndexes = new Map();
+    
+    
+    //setInterval
+    
+    fetch('./Exchange_1.json')
+      .then(response => response.json())
+      .then(data => {
+        graphDiv = 'myDiv'
+        const layout = {paper_bgcolor:"#383a3d", plot_bgcolor:"#383a3d", font:{color:"#ffffff"}}
+        Plotly.newPlot(graphDiv,[],layout);
+                
+        var cnt = 0;
+        // Plotly.addTraces(graphDiv, [{
+        //   y:[0],
+        //   type:'line'
+        // },{
+        //   y:[0],
+        //   type:'line'
+        // }]);
+        ExchangeIndex = 0
+        
+        timestamps = data.map((item) => item.TimeStampEpoch - 1704446880000000000);
+        i = 0
+        
+        // Intervals 
+        tickerToPlot = new Map();
+        setInterval(() => {
+          quarterSecond = 50000000
+          
+          // console.log(i)
+          if (timestamps[ExchangeIndex] >= i && timestamps[ExchangeIndex] < i + quarterSecond) {
+            
+            while(timestamps[ExchangeIndex] < i + quarterSecond) {
+              
+              if(data[ExchangeIndex].MessageType == "NewOrderRequest") {
+                newOrderRequest(data)
+              } else if(data[ExchangeIndex].MessageType == "Cancelled") {
+                cancelled(data)
+              }
+    
+              // console.log(symbols)
+              ExchangeIndex += 1          
+            }
+          }
+          i+=quarterSecond
+          
+          tickers = Array.from(symbols.keys())
+    
+    
+          index = 0
+          tickers.forEach((ticker) => {
+            if (!symbolIndexes.has(ticker)){
+              symbolIndexes.set(ticker, index)
+              Plotly.addTraces(graphDiv, [{
+                x:[11058944],
+                y:[symbols.get(ticker)[1]],
+                type:'line',
+                name: ticker
+              }])
+            }
+            index += 1
+          })
+          
+          currSymbol = data[ExchangeIndex].Symbol
+          if(symbols.has(currSymbol) && isFinite(symbols.get(currSymbol)[1])){ 
+          Plotly.extendTraces(graphDiv,
+          {
+            x:[[timestamps[ExchangeIndex]]],
+            y:[[symbols.get(currSymbol)[1]]],
+          }, [symbolIndexes.get(currSymbol)]);
+          } 
+            cnt = cnt + 1;
+                    if (cnt == symbols.length - 1 ){
+                      cnt = 0;
+                    }
+          
+                    }
+                ,10);
+        // console.log(data);   
+      })
+      .catch(error => console.error('Error fetching JSON:', error)); 
+      
+    
+    function newOrderRequest(data){
+      
+    
+      // current symbol exists
+      // console.log(symbols)
+      if (symbols.has(data[ExchangeIndex].Symbol)) {
+        // console.log(data[ExchangeIndex].Symbol)
+        //add to symbols map
+        symbols.get(data[ExchangeIndex].Symbol)[0].set(data[ExchangeIndex].OrderID, data[ExchangeIndex].OrderPrice)
+        
+        // check the minimum
+        if (symbols.get(data[ExchangeIndex].Symbol)[1] > data[ExchangeIndex].OrderPrice) {
+          symbols.get(data[ExchangeIndex].Symbol)[1] = data[ExchangeIndex].OrderPrice 
+        }
+        
+      } else {
+        //create a new map inside the symbols map
+        symbols.set(data[ExchangeIndex].Symbol, [new Map(), data[ExchangeIndex].OrderPrice])
+        
+        
+      }
+      symbols.get(data[ExchangeIndex].Symbol)[0].set(data[ExchangeIndex].OrderID, data[ExchangeIndex].OrderPrice)
+    }
+    
+    function cancelled(data){
+      if(symbols.has(data[ExchangeIndex].Symbol) && symbols.get(data[ExchangeIndex].Symbol)[0].has(data[ExchangeIndex].OrderID)) {
+        if(symbols.get(data[ExchangeIndex].Symbol)[0].get(data[ExchangeIndex].OrderID) == symbols.get(data[ExchangeIndex].Symbol)[1]) {
+          symbols.get(data[ExchangeIndex].Symbol)[0].delete(data[ExchangeIndex].OrderID)
+          symbols.get(data[ExchangeIndex].Symbol)[1] = Math.min(...symbols.get(data[ExchangeIndex].Symbol)[0].values())
+        } else {
+          symbols.get(data[ExchangeIndex].Symbol)[0].delete(data[ExchangeIndex].OrderID)
+        }
+      }
+    }
+    
+    
+    
+    </script>
+    
+    
+    
+    
+    
   </body>
 </html>
