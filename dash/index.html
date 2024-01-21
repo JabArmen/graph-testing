@@ -43,56 +43,48 @@
         <div class="main-title">
           <h2>DASHBOARD</h2>
         </div>
-
+        <div id="myDiv">
+        </div>
         <div class="main-cards">
-
+          
+          
+          
           <div class="card">
             <div class="card-inner">
-              <h3>PRODUCTS</h3>
-              <span class="material-icons-outlined">inventory_2</span>
+              <h3>TIME</h3>
             </div>
-            <h1>249</h1>
+            <h1 id = "time">0:00:00</h1>
           </div>
 
           <div class="card">
             <div class="card-inner">
-              <h3>CATEGORIES</h3>
-              <span class="material-icons-outlined">category</span>
+              <h3 id = "maxSymb">MAX PRICE</h3>
             </div>
-            <h1>25</h1>
+            <h1 id = "MAX">0</h1>
           </div>
 
           <div class="card">
             <div class="card-inner">
-              <h3>CUSTOMERS</h3>
-              <span class="material-icons-outlined">groups</span>
+              <h3 id = "minSymb">MIN PRICE</h3>
             </div>
-            <h1>1500</h1>
+            <h1 id = "MIN">0</h1>
           </div>
+        </div>
+          <div class="charts">
 
-          <div class="card">
-            <div class="card-inner">
-              <h3>ALERTS</h3>
-              <span class="material-icons-outlined">notification_important</span>
+            <div class="charts-card">
+              <h2 class="chart-title">Top Requested Symbols</h2>
+              <div id="top10-chart"></div>
             </div>
-            <h1>56</h1>
+  
+            <div class="charts-card">
+              <h2 class="chart-title">Canceled/Acknowledged Ratio</h2>
+              <div id="canceledPercentage"></div>
+            </div>
           </div>
-
         </div>
 
-        <div class="charts">
-
-          <div class="charts-card">
-            <h2 class="chart-title">Top 5 Products</h2>
-            <div id="bar-chart"></div>
-          </div>
-
-          <div class="charts-card">
-            <h2 class="chart-title">Purchase and Sales Orders</h2>
-            <div id="area-chart"></div>
-          </div>
-          <div id="myDiv"></div>
-        </div>
+        
       </main>
       <!-- End Main -->
 
@@ -102,22 +94,30 @@
     <!-- ApexCharts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.35.5/apexcharts.min.js"></script>
     <!-- Custom JS -->
-    <script src="js/scripts.js"></script>
+    <!-- <script src="js/scripts.js"></script> -->
     <script>
       let values
     
       let timestamps
       let symbols = new Map()
       let symbolIndexes = new Map();
-    
-    
+      let symbolsToRequestCount = new Map()
+      let top10Symbols = [[0, ""], [0, ""], [0, ""], [0, ""], [0, ""], [0, ""], [0, ""], [0, ""], [0, ""], [0, ""]]
     //setInterval
     
     fetch('./Exchange_1.json')
       .then(response => response.json())
       .then(data => {
         graphDiv = 'myDiv'
-        const layout = {paper_bgcolor:"#383a3d", plot_bgcolor:"#383a3d", font:{color:"#ffffff"}}
+
+        timer = document.getElementById("time")
+        const layout =
+        {
+          paper_bgcolor:"#263043", 
+          plot_bgcolor:"#263043", 
+          font:{color:"#ffffff"}, 
+          xaxis: {type: 'date',range:{min: new Date(2015, 5, 1).getTime(),max: new Date(2015, 5, 31).getTime()}}
+        }
         Plotly.newPlot(graphDiv,[],layout);
                 
         var cnt = 0;
@@ -135,28 +135,77 @@
         
         // Intervals 
         tickerToPlot = new Map();
+        max = 0
+        min = 10000
+        maxSymb = ""
+        minSymb = ""
+        newOrders = 0
+        cancelledOrders = 0
         setInterval(() => {
           quarterSecond = 50000000
           
-          // console.log(i)
+          
+          
+
           if (timestamps[ExchangeIndex] >= i && timestamps[ExchangeIndex] < i + quarterSecond) {
             
             while(timestamps[ExchangeIndex] < i + quarterSecond) {
               
               if(data[ExchangeIndex].MessageType == "NewOrderRequest") {
+                if(symbolsToRequestCount.has(data[ExchangeIndex].Symbol)) {
+                  symbolsToRequestCount.set(data[ExchangeIndex].Symbol, symbolsToRequestCount.get(data[ExchangeIndex].Symbol) + 1)
+                } else {
+                  symbolsToRequestCount.set(data[ExchangeIndex].Symbol, 1)
+                }
+
+                // if(symbolsToRequestCount.get(data[ExchangeIndex].Symbol) > top10Symbols[0][0]) {
+                //   top10Symbols[0] = [symbolsToRequestCount.get(data[ExchangeIndex].Symbol), data[ExchangeIndex].Symbol]
+                //   for(l = 0; l < 9; l++) {
+                //     if (top10Symbols[l][0] > top10Symbols[l+1][0]) {
+                //       temp = top10Symbols[l]
+                //       top10Symbols[l] = top10Symbols[l+1]
+                //       top10Symbols[l+1] = temp
+                //     }
+                //   }
+                // }
+                
+                
+
                 newOrderRequest(data)
+                if (data[ExchangeIndex].OrderPrice > max) {
+                  max = data[ExchangeIndex].OrderPrice
+                  maxSymb = data[ExchangeIndex].Symbol
+                }
+                if (data[ExchangeIndex].OrderPrice < min) {
+                  min = data[ExchangeIndex].OrderPrice
+                  minSymb = data[ExchangeIndex].Symbol
+                }
               } else if(data[ExchangeIndex].MessageType == "Cancelled") {
+                cancelledOrders += 1
                 cancelled(data)
               }
+
+              else if(data[ExchangeIndex].MessageType == 'NewOrderAcknowledged') {
+                newOrders += 1
+
+              }
     
-              // console.log(symbols)
               ExchangeIndex += 1          
             }
           }
+
+          
+
+          maxElement = document.getElementById("MAX")
+          minElement = document.getElementById("MIN")
+          document.getElementById("maxSymb").innerHTML = "MAX PRICE: " + maxSymb
+          document.getElementById("minSymb").innerHTML = "MIN PRICE: " + minSymb
+          maxElement.innerHTML = max + "$"
+          minElement.innerHTML = min + "$"
+
           i+=quarterSecond
           
           tickers = Array.from(symbols.keys())
-    
     
           index = 0
           tickers.forEach((ticker) => {
@@ -173,21 +222,159 @@
           })
           
           currSymbol = data[ExchangeIndex].Symbol
+
+          
+          
+          // Plotly.newPlot('top10-chart', [
+          // {
+          //   type: 'bar',
+          //   x: [top10Symbols[0][1], top10Symbols[1][1], top10Symbols[2][1], top10Symbols[3][1], top10Symbols[4][1], top10Symbols[5][1], top10Symbols[6][1], top10Symbols[7][1], top10Symbols[8][1], top10Symbols[9][1]],
+          //   y: [top10Symbols[0][0], top10Symbols[1][0], top10Symbols[2][0], top10Symbols[3][0], top10Symbols[4][0], top10Symbols[5][0], top10Symbols[6][0], top10Symbols[7][0], top10Symbols[8][0], top10Symbols[9][0]],
+          //     marker: {
+          //     color: '#C8A2C8',
+          //     line: {
+          //         width: 2.5
+          //       }
+          //     }
+          //   }
+          // ], {
+          //   paper_bgcolor: "#263043",
+          //   width: 600,
+          //   height: 200,
+          //   font:{color:"#ffffff"}, 
+          // });
+          // Plotly.newPlot('canceledPercentage', [{
+          //   type: "indicator",
+          //   mode: "number+delta",
+          //   value: (cancelledOrders / newOrders)*100,
+          //   number: { suffix: "%" },
+          // }], {
+          //   paper_bgcolor: "#263043",
+          //   width: 600,
+          //   height: 200,
+          //   font:{color:"#ffffff"}, 
+          //   margin: { t: 0, b: 0, l: 0, r: 0 }
+          // });
+
+
           if(symbols.has(currSymbol) && isFinite(symbols.get(currSymbol)[1])){ 
+            date = new Date(data[ExchangeIndex].TimeStamp)
           Plotly.extendTraces(graphDiv,
           {
             x:[[timestamps[ExchangeIndex]]],
             y:[[symbols.get(currSymbol)[1]]],
           }, [symbolIndexes.get(currSymbol)]);
           } 
+          
+          timer.innerHTML = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
             cnt = cnt + 1;
                     if (cnt == symbols.length - 1 ){
                       cnt = 0;
                     }
           
                     }
-                ,10);
-        // console.log(data);   
+                ,10)
+          setInterval(() => {
+          quarterSecond = 50000000
+          
+          // console.log(i)
+          
+          
+
+          if (timestamps[ExchangeIndex] >= i && timestamps[ExchangeIndex] < i + quarterSecond) {
+            
+            while(timestamps[ExchangeIndex] < i + quarterSecond) {
+              
+              if(data[ExchangeIndex].MessageType == "NewOrderRequest") {
+                if(symbolsToRequestCount.has(data[ExchangeIndex].Symbol)) {
+                  symbolsToRequestCount.set(data[ExchangeIndex].Symbol, symbolsToRequestCount.get(data[ExchangeIndex].Symbol) + 1)
+                } else {
+                  symbolsToRequestCount.set(data[ExchangeIndex].Symbol, 1)
+                }
+                found = false
+                for (j = 0; j < 9; j++) {
+                  if (top10Symbols[j][1] == data[ExchangeIndex].Symbol) {
+                    console.log("found")
+                    top10Symbols[j][0] += 1
+                    found = true
+                    break
+                  }
+                }
+                if(!found && symbolsToRequestCount.get(data[ExchangeIndex].Symbol) > top10Symbols[0][0]) {
+                  top10Symbols[0] = [symbolsToRequestCount.get(data[ExchangeIndex].Symbol), data[ExchangeIndex].Symbol]
+                  for(l = 0; l < 9; l++) {
+                    if (top10Symbols[l][0] > top10Symbols[l+1][0]) {
+                      temp = top10Symbols[l]
+                      top10Symbols[l] = top10Symbols[l+1]
+                      top10Symbols[l+1] = temp
+                    }
+                  }
+                }
+                
+                
+                
+
+                newOrderRequest(data)
+                if (data[ExchangeIndex].OrderPrice > max) {
+                  max = data[ExchangeIndex].OrderPrice
+                }
+                if (data[ExchangeIndex].OrderPrice < min) {
+                  min = data[ExchangeIndex].OrderPrice
+                }
+              } else if(data[ExchangeIndex].MessageType == "Cancelled") {
+                cancelledOrders += 1
+                cancelled(data)
+              }
+
+              else if(data[ExchangeIndex].MessageType == 'NewOrderAcknowledged') {
+                newOrders += 1
+
+              }
+    
+              ExchangeIndex += 1          
+            }
+          }
+
+          
+
+          maxElement = document.getElementById("MAX")
+          minElement = document.getElementById("MIN")
+          maxElement.innerHTML = max
+          minElement.innerHTML = min
+
+          i+=quarterSecond
+          
+          
+          Plotly.newPlot('top10-chart', [
+          {
+            type: 'bar',
+            x: [top10Symbols[0][1], top10Symbols[1][1], top10Symbols[2][1], top10Symbols[3][1], top10Symbols[4][1], top10Symbols[5][1], top10Symbols[6][1], top10Symbols[7][1], top10Symbols[8][1], top10Symbols[9][1]],
+            y: [top10Symbols[0][0], top10Symbols[1][0], top10Symbols[2][0], top10Symbols[3][0], top10Symbols[4][0], top10Symbols[5][0], top10Symbols[6][0], top10Symbols[7][0], top10Symbols[8][0], top10Symbols[9][0]],
+              marker: {
+              color: '#C8A2C8'
+              }
+            }
+          ], {
+            paper_bgcolor: "#263043",
+            width: 500,
+            height:500,
+            font:{color:"#ffffff"}, 
+          });
+          Plotly.newPlot('canceledPercentage', [{
+            type: "indicator",
+            mode: "number+delta",
+            value: (cancelledOrders / newOrders)*100,
+            number: { suffix: "%" },
+          }], {
+            paper_bgcolor: "#263043",
+            width: 600,
+            height: 200,
+            font:{color:"#ffffff"}, 
+            margin: { t: 0, b: 0, l: 0, r: 0 }
+          });
+
+                    }
+                ,3000)
       })
       .catch(error => console.error('Error fetching JSON:', error)); 
       
@@ -196,10 +383,9 @@
       
     
       // current symbol exists
-      // console.log(symbols)
       if (symbols.has(data[ExchangeIndex].Symbol)) {
-        // console.log(data[ExchangeIndex].Symbol)
         //add to symbols map
+
         symbols.get(data[ExchangeIndex].Symbol)[0].set(data[ExchangeIndex].OrderID, data[ExchangeIndex].OrderPrice)
         
         // check the minimum
@@ -230,10 +416,7 @@
     
     
     </script>
+
     
     
     
-    
-    
-  </body>
-</html>
